@@ -18,10 +18,9 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
+      # version comes from package.json "packageManager" (do not also set "version" here)
       - name: Setup pnpm
         uses: pnpm/action-setup@v4
-        with:
-          version: 10
 
       - name: Setup Node.js
         uses: actions/setup-node@v4
@@ -46,6 +45,7 @@ jobs:
 
   docker:
     name: Docker image builds
+    needs: test
     runs-on: ubuntu-latest
 
     steps:
