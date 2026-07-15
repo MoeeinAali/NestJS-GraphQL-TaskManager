@@ -1,6 +1,6 @@
 import { ApolloServerPluginLandingPageLocalDefault } from '@apollo/server/plugin/landingPage/default';
 import { ApolloDriver, ApolloDriverConfig } from '@nestjs/apollo';
-import { BadRequestException, Module, ValidationPipe } from '@nestjs/common';
+import { BadRequestException, Module } from '@nestjs/common';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { APP_FILTER, APP_PIPE } from '@nestjs/core';
 import { GraphQLModule } from '@nestjs/graphql';
@@ -8,6 +8,7 @@ import depthLimit from 'graphql-depth-limit';
 import { join } from 'node:path';
 import { validateEnv } from './common/config/env.validation';
 import { DomainExceptionFilter } from './common/filters/domain-exception.filter';
+import { GqlValidationPipe } from './common/pipes/gql-validation.pipe';
 import { PrismaModule } from './infrastructure/prisma/prisma.module';
 import { TagsModule } from './modules/tags/tags.module';
 import { TasksModule } from './modules/tasks/tasks.module';
@@ -43,7 +44,7 @@ import { TasksModule } from './modules/tasks/tasks.module';
   providers: [
     {
       provide: APP_PIPE,
-      useValue: new ValidationPipe({
+      useValue: new GqlValidationPipe({
         whitelist: true,
         transform: true,
         // Surface the concrete constraint messages instead of the generic
