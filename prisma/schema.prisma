@@ -1,0 +1,40 @@
+// Prisma schema for the Mini Task Manager.
+//
+// SQLite does not support native enums in Prisma, so:
+//  - `Task.status` is persisted as a String ("TODO" | "DOING" | "DONE")
+//  - `Task.priority` is persisted as an Int (1 = LOW, 2 = MEDIUM, 3 = HIGH)
+//    so that ORDER BY priority is semantically correct.
+// The domain layer owns the real enum types; infrastructure mappers translate.
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model Task {
+  id          String    @id @default(uuid())
+  title       String
+  description String?
+  status      String    @default("TODO")
+  priority    Int       @default(2)
+  dueDate     DateTime?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  tags        Tag[]
+
+  @@index([status])
+  @@index([priority])
+  @@index([dueDate])
+}
+
+model Tag {
+  id        String   @id @default(uuid())
+  name      String   @unique
+  color     String?
+  createdAt DateTime @default(now())
+  tasks     Task[]
+}
