@@ -433,6 +433,15 @@ describe('GraphQL API (e2e)', () => {
     });
   });
 
+  describe('health endpoint', () => {
+    it('reports ok while the database is reachable', async () => {
+      const response = await request(app.getHttpServer())
+        .get('/health')
+        .expect(200);
+      expect(response.body).toEqual({ status: 'ok', database: 'up' });
+    });
+  });
+
   describe('query safety', () => {
     it('rejects queries nested deeper than the depth limit', async () => {
       // Apollo answers GraphQL validation failures with HTTP 400,

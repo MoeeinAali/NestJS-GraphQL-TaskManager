@@ -9,6 +9,7 @@ import { join } from 'node:path';
 import { validateEnv } from './common/config/env.validation';
 import { DomainExceptionFilter } from './common/filters/domain-exception.filter';
 import { GqlValidationPipe } from './common/pipes/gql-validation.pipe';
+import { HealthModule } from './health/health.module';
 import { PrismaModule } from './infrastructure/prisma/prisma.module';
 import { TagsModule } from './modules/tags/tags.module';
 import { TasksModule } from './modules/tasks/tasks.module';
@@ -40,6 +41,7 @@ import { TasksModule } from './modules/tasks/tasks.module';
     PrismaModule,
     TasksModule,
     TagsModule,
+    HealthModule,
   ],
   providers: [
     {
