@@ -6,6 +6,7 @@ import { ListTagsUseCase } from './application/list-tags.use-case';
 import { UpdateTagUseCase } from './application/update-tag.use-case';
 import { TAG_REPOSITORY } from './domain/tag.repository';
 import { TagPrismaRepository } from './infrastructure/tag.prisma-repository';
+import { TagResolver } from './presentation/tag.resolver';
 
 @Module({
   providers: [
@@ -15,6 +16,7 @@ import { TagPrismaRepository } from './infrastructure/tag.prisma-repository';
     DeleteTagUseCase,
     GetTagUseCase,
     ListTagsUseCase,
+    TagResolver,
   ],
   exports: [TAG_REPOSITORY],
 })

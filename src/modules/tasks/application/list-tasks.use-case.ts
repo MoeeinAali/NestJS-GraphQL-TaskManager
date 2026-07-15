@@ -13,20 +13,26 @@ import type {
 export const DEFAULT_PAGE_SIZE = 20;
 export const MAX_PAGE_SIZE = 50;
 
+/** Repository page plus the normalized window, so callers can derive hasNextPage. */
+export interface ListTasksResult extends TaskListResult {
+  skip: number;
+  take: number;
+}
+
 @Injectable()
 export class ListTasksUseCase {
   constructor(
     @Inject(TASK_REPOSITORY) private readonly taskRepository: TaskRepository,
   ) {}
 
-  async execute(options: ListTasksOptions = {}): Promise<TaskListResult> {
+  async execute(options: ListTasksOptions = {}): Promise<ListTasksResult> {
     const skip = Math.max(0, options.pagination?.skip ?? 0);
     const take = Math.min(
       MAX_PAGE_SIZE,
       Math.max(1, options.pagination?.take ?? DEFAULT_PAGE_SIZE),
     );
 
-    return this.taskRepository.findMany({
+    const result = await this.taskRepository.findMany({
       filter: options.filter,
       pagination: { skip, take },
       sort: options.sort ?? {
@@ -34,5 +40,7 @@ export class ListTasksUseCase {
         direction: SortDirection.DESC,
       },
     });
+
+    return { ...result, skip, take };
   }
 }

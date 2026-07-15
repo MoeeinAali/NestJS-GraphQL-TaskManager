@@ -41,7 +41,7 @@ export interface Pagination {
 
 export interface ListTasksOptions {
   filter?: TaskFilter;
-  pagination?: Pagination;
+  pagination?: Partial<Pagination>;
   sort?: TaskSort;
 }
 

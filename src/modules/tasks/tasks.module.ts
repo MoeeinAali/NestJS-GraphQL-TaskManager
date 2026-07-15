@@ -9,6 +9,9 @@ import { ListTasksUseCase } from './application/list-tasks.use-case';
 import { UpdateTaskUseCase } from './application/update-task.use-case';
 import { TASK_REPOSITORY } from './domain/task.repository';
 import { TaskPrismaRepository } from './infrastructure/task.prisma-repository';
+import { TagTasksLoader } from './presentation/tag-tasks.loader';
+import { TagTasksResolver } from './presentation/tag-tasks.resolver';
+import { TaskResolver } from './presentation/task.resolver';
 
 @Module({
   imports: [TagsModule],
@@ -21,7 +24,9 @@ import { TaskPrismaRepository } from './infrastructure/task.prisma-repository';
     GetTaskUseCase,
     ListTasksUseCase,
     GetTasksByTagIdsUseCase,
+    TaskResolver,
+    TagTasksResolver,
+    TagTasksLoader,
   ],
-  exports: [GetTasksByTagIdsUseCase],
 })
 export class TasksModule {}

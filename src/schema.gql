@@ -1,0 +1,175 @@
+# ------------------------------------------------------
+# THIS FILE WAS AUTOMATICALLY GENERATED (DO NOT MODIFY)
+# ------------------------------------------------------
+
+input CreateTagInput {
+  color: String
+  name: String!
+}
+
+input CreateTaskInput {
+  description: String
+  dueDate: DateTime
+
+  """Defaults to MEDIUM."""
+  priority: Priority
+
+  """Ids of existing tags to attach."""
+  tagIds: [ID!]
+  title: String!
+}
+
+"""
+A date-time string at UTC, such as 2019-12-03T09:54:33Z, compliant with the date-time format.
+"""
+scalar DateTime
+
+type DeleteTagPayload {
+  """Id of the deleted tag."""
+  id: ID!
+}
+
+type DeleteTaskPayload {
+  """Id of the deleted task."""
+  id: ID!
+}
+
+type Mutation {
+  """Move a task between TODO, DOING and DONE (any direction)."""
+  changeTaskStatus(id: ID!, status: TaskStatus!): Task!
+  createTag(input: CreateTagInput!): Tag!
+  createTask(input: CreateTaskInput!): Task!
+
+  """Delete a tag. It is detached from all tasks automatically."""
+  deleteTag(id: ID!): DeleteTagPayload!
+  deleteTask(id: ID!): DeleteTaskPayload!
+  updateTag(id: ID!, input: UpdateTagInput!): Tag!
+  updateTask(id: ID!, input: UpdateTaskInput!): Task!
+}
+
+"""Offset-based pagination."""
+input PaginationInput {
+  """How many items to skip. Defaults to 0."""
+  skip: Int
+
+  """Page size. Defaults to 20, capped at 50."""
+  take: Int
+}
+
+"""How urgent a task is."""
+enum Priority {
+  HIGH
+  LOW
+  MEDIUM
+}
+
+type Query {
+  """A single tag by id, or null if it does not exist."""
+  tag(id: ID!): Tag
+
+  """All tags, sorted by name."""
+  tags: [Tag!]!
+
+  """A single task by id, or null if it does not exist."""
+  task(id: ID!): Task
+
+  """List tasks with optional filtering, sorting and pagination."""
+  tasks(filter: TaskFilterInput, pagination: PaginationInput, sort: TaskSortInput): TaskPage!
+}
+
+enum SortDirection {
+  ASC
+  DESC
+}
+
+type Tag {
+  """Hex color like #AABBCC, for UI rendering."""
+  color: String
+  createdAt: DateTime!
+  id: ID!
+  name: String!
+
+  """Tasks carrying this tag."""
+  tasks: [Task!]!
+}
+
+"""A single unit of work to be done."""
+type Task {
+  createdAt: DateTime!
+  description: String
+  dueDate: DateTime
+  id: ID!
+  priority: Priority!
+  status: TaskStatus!
+
+  """Labels attached to this task."""
+  tags: [Tag!]!
+  title: String!
+  updatedAt: DateTime!
+}
+
+"""All criteria are combined with AND."""
+input TaskFilterInput {
+  """Tasks due at or after this instant."""
+  dueAfter: DateTime
+
+  """Tasks due at or before this instant."""
+  dueBefore: DateTime
+  priority: Priority
+
+  """Substring match on title or description."""
+  search: String
+  status: TaskStatus
+
+  """Tasks carrying at least one of these tags."""
+  tagIds: [ID!]
+}
+
+"""One page of tasks plus pagination metadata."""
+type TaskPage {
+  hasNextPage: Boolean!
+  items: [Task!]!
+
+  """Total number of tasks matching the filter."""
+  totalCount: Int!
+}
+
+"""Field to sort tasks by."""
+enum TaskSortField {
+  CREATED_AT
+  DUE_DATE
+  PRIORITY
+  TITLE
+  UPDATED_AT
+}
+
+input TaskSortInput {
+  direction: SortDirection = DESC
+  field: TaskSortField!
+}
+
+"""Lifecycle state of a task. Transitions are unrestricted."""
+enum TaskStatus {
+  DOING
+  DONE
+  TODO
+}
+
+input UpdateTagInput {
+  """Pass null to clear the color."""
+  color: String
+  name: String
+}
+
+input UpdateTaskInput {
+  """Pass null to clear the description."""
+  description: String
+
+  """Pass null to clear the due date."""
+  dueDate: DateTime
+  priority: Priority
+
+  """Replaces the full tag set; pass [] to remove all tags."""
+  tagIds: [ID!]
+  title: String
+}
