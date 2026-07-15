@@ -32,6 +32,7 @@ Users create tasks, edit or delete them, and move each task between **TODO**, **
 - **N+1 safe** — `Tag.tasks` is resolved through a per-request DataLoader
 - **Typed errors** — machine-readable `extensions.code`: `NOT_FOUND`, `CONFLICT`, `BAD_REQUEST`, `VALIDATION_ERROR`
 - **Hardened** — input validation (class-validator), query depth limit, env validation at boot, health endpoint
+- **Observable** — structured logging with pino: per-request correlation ids, GraphQL operation timings, SQL query logs in dev
 - **Tested** — 62 unit tests (domain + use cases, zero DB) and 23 e2e tests against a real SQLite database
 - **Ops-ready** — multi-stage Dockerfile (non-root, auto-migrations, healthcheck), docker-compose, GitHub Actions CI
 
@@ -124,6 +125,21 @@ Errors carry a machine-readable code:
 | `CONFLICT` | Duplicate tag name |
 | `BAD_REQUEST` | Input failed validation (message lists the violated rules) |
 | `INTERNAL_SERVER_ERROR` | Unexpected failure (masked in production) |
+
+## Observability
+
+Logging is handled by [pino](https://getpino.io) via `nestjs-pino` — human-readable one-liners in development, structured JSON in production (ready for Loki/ELK/CloudWatch):
+
+- every HTTP request gets a generated **request id**, attached to all of its log lines for correlation;
+- an Apollo plugin ([graphql-logging.plugin.ts](src/common/graphql/graphql-logging.plugin.ts)) logs each **GraphQL operation** with its name, kind and duration, and each error with its `extensions.code` — expected client errors log as warnings, unexpected failures as errors with the stack;
+- in development, **Prisma SQL queries** are logged with parameters and timings;
+- the `/health` poll is excluded from access logs to keep the output meaningful.
+
+Verbosity is controlled with `LOG_LEVEL` (`trace…silent`); unset, it defaults to `debug` in development, `info` in production and `silent` in tests.
+
+## Postman collection
+
+A ready-made collection lives at [postman/NestJS-GraphQL.postman_collection.json](postman/NestJS-GraphQL.postman_collection.json) — import it into Postman (File → Import) and run the folders top-to-bottom: **Health → Tags → Tasks → Error examples**. Requests that create data store the returned ids in collection variables (`{{tagId}}`, `{{taskId}}`), so the whole flow chains without copy-pasting; each request also carries small test assertions, so the collection doubles as a smoke suite (works with the Collection Runner and `newman` too). Set `{{baseUrl}}` if the API is not on `http://localhost:3000`.
 
 ## Project setup
 

@@ -1,0 +1,619 @@
+{
+  "info": {
+    "_postman_id": "b7e2f9a4-3c1d-4e5f-8a6b-2d9c0e1f3a57",
+    "name": "NestJS-GraphQL Task Manager",
+    "description": "Mini Task Manager GraphQL API (NestJS + Apollo + Prisma).\n\nRun the folders top-to-bottom on a fresh database for the smooth path: Health → Tags → Tasks → Error examples. Requests that create things save the returned ids into collection variables ({{tagId}}, {{taskId}}), so later requests chain automatically.\n\nSet {{baseUrl}} if the API is not on http://localhost:3000.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    { "key": "baseUrl", "value": "http://localhost:3000" },
+    { "key": "tagId", "value": "" },
+    { "key": "secondTagId", "value": "" },
+    { "key": "taskId", "value": "" }
+  ],
+  "item": [
+    {
+      "name": "Health",
+      "item": [
+        {
+          "name": "Health check",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('200 and database up', () => {",
+                  "  pm.response.to.have.status(200);",
+                  "  const body = pm.response.json();",
+                  "  pm.expect(body.status).to.eql('ok');",
+                  "  pm.expect(body.database).to.eql('up');",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/health",
+              "host": ["{{baseUrl}}"],
+              "path": ["health"]
+            },
+            "description": "REST liveness/readiness probe used by the Docker healthcheck."
+          }
+        }
+      ]
+    },
+    {
+      "name": "Tags",
+      "item": [
+        {
+          "name": "Create tag (uni)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('tag created', () => {",
+                  "  pm.response.to.have.status(200);",
+                  "  const body = pm.response.json();",
+                  "  pm.expect(body.errors).to.be.undefined;",
+                  "  pm.collectionVariables.set('tagId', body.data.createTag.id);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "url": {
+              "raw": "{{baseUrl}}/graphql",
+              "host": ["{{baseUrl}}"],
+              "path": ["graphql"]
+            },
+            "body": {
+              "mode": "graphql",
+              "graphql": {
+                "query": "mutation CreateTag($input: CreateTagInput!) {\n  createTag(input: $input) {\n    id\n    name\n    color\n    createdAt\n  }\n}",
+                "variables": "{\n  \"input\": { \"name\": \"uni\", \"color\": \"#3366ff\" }\n}"
+              }
+            },
+            "description": "Creates a tag and stores its id in {{tagId}}. Re-running without a reset returns CONFLICT (names are unique)."
+          }
+        },
+        {
+          "name": "Create tag (home)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('tag created', () => {",
+                  "  pm.response.to.have.status(200);",
+                  "  const body = pm.response.json();",
+                  "  pm.expect(body.errors).to.be.undefined;",
+                  "  pm.collectionVariables.set('secondTagId', body.data.createTag.id);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "url": {
+              "raw": "{{baseUrl}}/graphql",
+              "host": ["{{baseUrl}}"],
+              "path": ["graphql"]
+            },
+            "body": {
+              "mode": "graphql",
+              "graphql": {
+                "query": "mutation CreateTag($input: CreateTagInput!) {\n  createTag(input: $input) {\n    id\n    name\n    color\n  }\n}",
+                "variables": "{\n  \"input\": { \"name\": \"home\" }\n}"
+              }
+            }
+          }
+        },
+        {
+          "name": "List tags (with their tasks)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('tags listed', () => {",
+                  "  pm.response.to.have.status(200);",
+                  "  pm.expect(pm.response.json().data.tags).to.be.an('array');",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "url": {
+              "raw": "{{baseUrl}}/graphql",
+              "host": ["{{baseUrl}}"],
+              "path": ["graphql"]
+            },
+            "body": {
+              "mode": "graphql",
+              "graphql": {
+                "query": "query Tags {\n  tags {\n    id\n    name\n    color\n    tasks {\n      id\n      title\n      status\n    }\n  }\n}",
+                "variables": ""
+              }
+            },
+            "description": "The nested tasks field is resolved through a per-request DataLoader (one batched DB query, no N+1)."
+          }
+        },
+        {
+          "name": "Get tag by id",
+          "request": {
+            "method": "POST",
+            "url": {
+              "raw": "{{baseUrl}}/graphql",
+              "host": ["{{baseUrl}}"],
+              "path": ["graphql"]
+            },
+            "body": {
+              "mode": "graphql",
+              "graphql": {
+                "query": "query Tag($id: ID!) {\n  tag(id: $id) {\n    id\n    name\n    color\n    createdAt\n  }\n}",
+                "variables": "{\n  \"id\": \"{{tagId}}\"\n}"
+              }
+            },
+            "description": "Returns null (not an error) when the id does not exist."
+          }
+        },
+        {
+          "name": "Update tag (rename + recolor)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('tag updated', () => {",
+                  "  pm.response.to.have.status(200);",
+                  "  const body = pm.response.json();",
+                  "  pm.expect(body.errors).to.be.undefined;",
+                  "  pm.expect(body.data.updateTag.name).to.eql('errands');",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "url": {
+              "raw": "{{baseUrl}}/graphql",
+              "host": ["{{baseUrl}}"],
+              "path": ["graphql"]
+            },
+            "body": {
+              "mode": "graphql",
+              "graphql": {
+                "query": "mutation UpdateTag($id: ID!, $input: UpdateTagInput!) {\n  updateTag(id: $id, input: $input) {\n    id\n    name\n    color\n  }\n}",
+                "variables": "{\n  \"id\": \"{{secondTagId}}\",\n  \"input\": { \"name\": \"errands\", \"color\": \"#00aa55\" }\n}"
+              }
+            }
+          }
+        },
+        {
+          "name": "Delete tag",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('tag deleted', () => {",
+                  "  pm.response.to.have.status(200);",
+                  "  pm.expect(pm.response.json().data.deleteTag.id).to.eql(pm.collectionVariables.get('secondTagId'));",
+                  "  pm.collectionVariables.set('secondTagId', '');",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "url": {
+              "raw": "{{baseUrl}}/graphql",
+              "host": ["{{baseUrl}}"],
+              "path": ["graphql"]
+            },
+            "body": {
+              "mode": "graphql",
+              "graphql": {
+                "query": "mutation DeleteTag($id: ID!) {\n  deleteTag(id: $id) {\n    id\n  }\n}",
+                "variables": "{\n  \"id\": \"{{secondTagId}}\"\n}"
+              }
+            },
+            "description": "Deleting a tag silently detaches it from all tasks (join rows cascade)."
+          }
+        }
+      ]
+    },
+    {
+      "name": "Tasks",
+      "item": [
+        {
+          "name": "Create task (full)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('task created with defaults applied', () => {",
+                  "  pm.response.to.have.status(200);",
+                  "  const body = pm.response.json();",
+                  "  pm.expect(body.errors).to.be.undefined;",
+                  "  pm.expect(body.data.createTask.status).to.eql('TODO');",
+                  "  pm.collectionVariables.set('taskId', body.data.createTask.id);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "url": {
+              "raw": "{{baseUrl}}/graphql",
+              "host": ["{{baseUrl}}"],
+              "path": ["graphql"]
+            },
+            "body": {
+              "mode": "graphql",
+              "graphql": {
+                "query": "mutation CreateTask($input: CreateTaskInput!) {\n  createTask(input: $input) {\n    id\n    title\n    description\n    status\n    priority\n    dueDate\n    tags {\n      id\n      name\n    }\n    createdAt\n    updatedAt\n  }\n}",
+                "variables": "{\n  \"input\": {\n    \"title\": \"Submit HW4\",\n    \"description\": \"GraphQL assignment\",\n    \"priority\": \"HIGH\",\n    \"dueDate\": \"2026-08-01T12:00:00Z\",\n    \"tagIds\": [\"{{tagId}}\"]\n  }\n}"
+              }
+            },
+            "description": "Uses the tag created in the Tags folder ({{tagId}}). Stores the new task id in {{taskId}}."
+          }
+        },
+        {
+          "name": "Create task (minimal)",
+          "request": {
+            "method": "POST",
+            "url": {
+              "raw": "{{baseUrl}}/graphql",
+              "host": ["{{baseUrl}}"],
+              "path": ["graphql"]
+            },
+            "body": {
+              "mode": "graphql",
+              "graphql": {
+                "query": "mutation CreateTask($input: CreateTaskInput!) {\n  createTask(input: $input) {\n    id\n    title\n    status\n    priority\n    dueDate\n    tags {\n      name\n    }\n  }\n}",
+                "variables": "{\n  \"input\": { \"title\": \"Buy groceries\" }\n}"
+              }
+            },
+            "description": "Only the title is required; status defaults to TODO and priority to MEDIUM."
+          }
+        },
+        {
+          "name": "List tasks",
+          "request": {
+            "method": "POST",
+            "url": {
+              "raw": "{{baseUrl}}/graphql",
+              "host": ["{{baseUrl}}"],
+              "path": ["graphql"]
+            },
+            "body": {
+              "mode": "graphql",
+              "graphql": {
+                "query": "query Tasks {\n  tasks {\n    totalCount\n    hasNextPage\n    items {\n      id\n      title\n      status\n      priority\n      dueDate\n      tags {\n        name\n      }\n    }\n  }\n}",
+                "variables": ""
+              }
+            },
+            "description": "Default window: first 20 items, newest first."
+          }
+        },
+        {
+          "name": "List tasks (filter + sort)",
+          "request": {
+            "method": "POST",
+            "url": {
+              "raw": "{{baseUrl}}/graphql",
+              "host": ["{{baseUrl}}"],
+              "path": ["graphql"]
+            },
+            "body": {
+              "mode": "graphql",
+              "graphql": {
+                "query": "query Tasks($filter: TaskFilterInput, $sort: TaskSortInput) {\n  tasks(filter: $filter, sort: $sort) {\n    totalCount\n    items {\n      title\n      status\n      priority\n    }\n  }\n}",
+                "variables": "{\n  \"filter\": { \"status\": \"TODO\" },\n  \"sort\": { \"field\": \"PRIORITY\", \"direction\": \"DESC\" }\n}"
+              }
+            },
+            "description": "Filter criteria combine with AND: status, priority, tagIds, search, dueBefore/dueAfter. Priority sorts semantically (HIGH > MEDIUM > LOW)."
+          }
+        },
+        {
+          "name": "List tasks (search + pagination)",
+          "request": {
+            "method": "POST",
+            "url": {
+              "raw": "{{baseUrl}}/graphql",
+              "host": ["{{baseUrl}}"],
+              "path": ["graphql"]
+            },
+            "body": {
+              "mode": "graphql",
+              "graphql": {
+                "query": "query Tasks($filter: TaskFilterInput, $pagination: PaginationInput) {\n  tasks(filter: $filter, pagination: $pagination) {\n    totalCount\n    hasNextPage\n    items {\n      title\n    }\n  }\n}",
+                "variables": "{\n  \"filter\": { \"search\": \"HW\" },\n  \"pagination\": { \"skip\": 0, \"take\": 5 }\n}"
+              }
+            },
+            "description": "take is capped at 50 — anything larger is rejected with BAD_REQUEST."
+          }
+        },
+        {
+          "name": "Get task by id",
+          "request": {
+            "method": "POST",
+            "url": {
+              "raw": "{{baseUrl}}/graphql",
+              "host": ["{{baseUrl}}"],
+              "path": ["graphql"]
+            },
+            "body": {
+              "mode": "graphql",
+              "graphql": {
+                "query": "query Task($id: ID!) {\n  task(id: $id) {\n    id\n    title\n    description\n    status\n    priority\n    dueDate\n    tags {\n      name\n      color\n    }\n    createdAt\n    updatedAt\n  }\n}",
+                "variables": "{\n  \"id\": \"{{taskId}}\"\n}"
+              }
+            }
+          }
+        },
+        {
+          "name": "Update task (partial + clear with null)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('description cleared, title renamed', () => {",
+                  "  pm.response.to.have.status(200);",
+                  "  const task = pm.response.json().data.updateTask;",
+                  "  pm.expect(task.title).to.eql('Submit HW4 (final)');",
+                  "  pm.expect(task.description).to.be.null;",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "url": {
+              "raw": "{{baseUrl}}/graphql",
+              "host": ["{{baseUrl}}"],
+              "path": ["graphql"]
+            },
+            "body": {
+              "mode": "graphql",
+              "graphql": {
+                "query": "mutation UpdateTask($id: ID!, $input: UpdateTaskInput!) {\n  updateTask(id: $id, input: $input) {\n    id\n    title\n    description\n    priority\n    updatedAt\n  }\n}",
+                "variables": "{\n  \"id\": \"{{taskId}}\",\n  \"input\": {\n    \"title\": \"Submit HW4 (final)\",\n    \"description\": null\n  }\n}"
+              }
+            },
+            "description": "GraphQL null semantics: omitted fields stay untouched, explicit null clears description/dueDate. tagIds (when sent) replaces the whole tag set."
+          }
+        },
+        {
+          "name": "Change task status",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status changed to DOING', () => {",
+                  "  pm.response.to.have.status(200);",
+                  "  pm.expect(pm.response.json().data.changeTaskStatus.status).to.eql('DOING');",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "url": {
+              "raw": "{{baseUrl}}/graphql",
+              "host": ["{{baseUrl}}"],
+              "path": ["graphql"]
+            },
+            "body": {
+              "mode": "graphql",
+              "graphql": {
+                "query": "mutation ChangeTaskStatus($id: ID!, $status: TaskStatus!) {\n  changeTaskStatus(id: $id, status: $status) {\n    id\n    title\n    status\n    updatedAt\n  }\n}",
+                "variables": "{\n  \"id\": \"{{taskId}}\",\n  \"status\": \"DOING\"\n}"
+              }
+            },
+            "description": "Transitions are free: TODO, DOING and DONE can move to any other state."
+          }
+        },
+        {
+          "name": "Delete task",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('task deleted', () => {",
+                  "  pm.response.to.have.status(200);",
+                  "  pm.expect(pm.response.json().data.deleteTask.id).to.eql(pm.collectionVariables.get('taskId'));",
+                  "  pm.collectionVariables.set('taskId', '');",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "url": {
+              "raw": "{{baseUrl}}/graphql",
+              "host": ["{{baseUrl}}"],
+              "path": ["graphql"]
+            },
+            "body": {
+              "mode": "graphql",
+              "graphql": {
+                "query": "mutation DeleteTask($id: ID!) {\n  deleteTask(id: $id) {\n    id\n  }\n}",
+                "variables": "{\n  \"id\": \"{{taskId}}\"\n}"
+              }
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Error examples",
+      "description": "Every error carries a machine-readable extensions.code.",
+      "item": [
+        {
+          "name": "NOT_FOUND — unknown task id",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('NOT_FOUND error code', () => {",
+                  "  pm.response.to.have.status(200);",
+                  "  const error = pm.response.json().errors[0];",
+                  "  pm.expect(error.extensions.code).to.eql('NOT_FOUND');",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "url": {
+              "raw": "{{baseUrl}}/graphql",
+              "host": ["{{baseUrl}}"],
+              "path": ["graphql"]
+            },
+            "body": {
+              "mode": "graphql",
+              "graphql": {
+                "query": "mutation {\n  changeTaskStatus(id: \"ghost\", status: DONE) {\n    id\n  }\n}",
+                "variables": ""
+              }
+            }
+          }
+        },
+        {
+          "name": "CONFLICT — duplicate tag name",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('CONFLICT error code', () => {",
+                  "  pm.response.to.have.status(200);",
+                  "  const error = pm.response.json().errors[0];",
+                  "  pm.expect(error.extensions.code).to.eql('CONFLICT');",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "url": {
+              "raw": "{{baseUrl}}/graphql",
+              "host": ["{{baseUrl}}"],
+              "path": ["graphql"]
+            },
+            "body": {
+              "mode": "graphql",
+              "graphql": {
+                "query": "mutation {\n  createTag(input: { name: \"uni\" }) {\n    id\n  }\n}",
+                "variables": ""
+              }
+            },
+            "description": "Requires the 'uni' tag from the Tags folder to already exist."
+          }
+        },
+        {
+          "name": "BAD_REQUEST — blank title",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('BAD_REQUEST with constraint message', () => {",
+                  "  pm.response.to.have.status(200);",
+                  "  const error = pm.response.json().errors[0];",
+                  "  pm.expect(error.extensions.code).to.eql('BAD_REQUEST');",
+                  "  pm.expect(error.message).to.include('title');",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "url": {
+              "raw": "{{baseUrl}}/graphql",
+              "host": ["{{baseUrl}}"],
+              "path": ["graphql"]
+            },
+            "body": {
+              "mode": "graphql",
+              "graphql": {
+                "query": "mutation {\n  createTask(input: { title: \"\" }) {\n    id\n  }\n}",
+                "variables": ""
+              }
+            }
+          }
+        },
+        {
+          "name": "Depth limit exceeded",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('rejected with HTTP 400 before execution', () => {",
+                  "  pm.response.to.have.status(400);",
+                  "  pm.expect(pm.response.json().errors[0].message).to.match(/depth/i);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "url": {
+              "raw": "{{baseUrl}}/graphql",
+              "host": ["{{baseUrl}}"],
+              "path": ["graphql"]
+            },
+            "body": {
+              "mode": "graphql",
+              "graphql": {
+                "query": "query {\n  tasks {\n    items {\n      tags {\n        tasks {\n          tags {\n            tasks {\n              tags {\n                name\n              }\n            }\n          }\n        }\n      }\n    }\n  }\n}",
+                "variables": ""
+              }
+            },
+            "description": "Queries nested deeper than 6 levels are rejected during validation (Task→Tag→Task→… would otherwise be unbounded)."
+          }
+        }
+      ]
+    }
+  ]
+}
