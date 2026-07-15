@@ -7,7 +7,10 @@ import { PrismaClient } from '@prisma/client';
  * the database driver; everything above it depends on repository ports.
  */
 @Injectable()
-export class PrismaService extends PrismaClient implements OnModuleInit, OnModuleDestroy {
+export class PrismaService
+  extends PrismaClient
+  implements OnModuleInit, OnModuleDestroy
+{
   async onModuleInit(): Promise<void> {
     await this.$connect();
   }
