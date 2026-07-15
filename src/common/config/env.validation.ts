@@ -2,6 +2,7 @@ import { plainToInstance } from 'class-transformer';
 import {
   IsEnum,
   IsInt,
+  IsOptional,
   IsString,
   Max,
   Min,
@@ -12,6 +13,16 @@ export enum Environment {
   Development = 'development',
   Production = 'production',
   Test = 'test',
+}
+
+export enum LogLevel {
+  Trace = 'trace',
+  Debug = 'debug',
+  Info = 'info',
+  Warn = 'warn',
+  Error = 'error',
+  Fatal = 'fatal',
+  Silent = 'silent',
 }
 
 export class EnvironmentVariables {
@@ -25,6 +36,11 @@ export class EnvironmentVariables {
 
   @IsString()
   DATABASE_URL!: string;
+
+  /** Unset ⇒ debug in development, info in production, silent in tests. */
+  @IsOptional()
+  @IsEnum(LogLevel)
+  LOG_LEVEL?: LogLevel;
 }
 
 export function validateEnv(
