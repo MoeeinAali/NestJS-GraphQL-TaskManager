@@ -3,6 +3,7 @@
 
   ENV PNPM_HOME="/pnpm"
   ENV PATH="$PNPM_HOME:$PATH"
+  ENV DATABASE_URL="file:./dev.db"
   
   RUN corepack enable
   
@@ -12,7 +13,7 @@
   COPY package.json pnpm-lock.yaml ./
   COPY prisma ./prisma
   
-  # Install dependencies
+  # Install dependencies (postinstall runs prisma generate)
   RUN --mount=type=secret,id=npmrc,target=/root/.npmrc \
       --mount=type=cache,id=pnpm,target=/pnpm/store \
       pnpm install --frozen-lockfile
@@ -20,6 +21,7 @@
   COPY tsconfig.json tsconfig.build.json nest-cli.json ./
   COPY src ./src
   
+  # prisma generate runs via the build script (needed for Nest TS compile)
   RUN pnpm build
   
   # Remove dev dependencies
@@ -43,8 +45,7 @@
   COPY --from=build /app/prisma ./prisma
   COPY package.json ./
   
-  RUN pnpm exec prisma generate \
-      && mkdir -p /app/data \
+  RUN mkdir -p /app/data \
       && chown -R node:node /app
   
   USER node
