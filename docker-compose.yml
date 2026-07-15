@@ -1,0 +1,17 @@
+services:
+  api:
+    build: .
+    container_name: task-manager-api
+    ports:
+      - '3000:3000'
+    environment:
+      NODE_ENV: production
+      PORT: 3000
+      # The SQLite file lives on a named volume so data survives restarts.
+      DATABASE_URL: 'file:/app/data/tasks.db'
+    volumes:
+      - sqlite-data:/app/data
+    restart: unless-stopped
+
+volumes:
+  sqlite-data:
